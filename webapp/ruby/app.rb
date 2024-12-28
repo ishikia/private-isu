@@ -13,6 +13,8 @@ module Isuconp
     # refs: https://github.com/advisories/GHSA-hxx2-7vcw-mqr3
     set :host_authorization, { permitted_hosts: [] }
 
+    BASE_URL = ENV['BASE_URL'] || 'http://localhost:8080'
+
     UPLOAD_LIMIT = 10 * 1024 * 1024 # 10mb
 
     POSTS_PER_PAGE = 20
@@ -154,14 +156,14 @@ module Isuconp
 
     get '/login' do
       if get_session_user()
-        redirect '/', 302
+        redirect "#{BASE_URL}/", 302
       end
       erb :login, layout: :layout, locals: { me: nil }
     end
 
     post '/login' do
       if get_session_user()
-        redirect '/', 302
+        redirect "#{BASE_URL}/", 302
       end
 
       user = try_login(params['account_name'], params['password'])
@@ -170,23 +172,23 @@ module Isuconp
           id: user[:id]
         }
         session[:csrf_token] = SecureRandom.hex(16)
-        redirect '/', 302
+        redirect "#{BASE_URL}/", 302
       else
         flash[:notice] = 'アカウント名かパスワードが間違っています'
-        redirect '/login', 302
+        redirect "#{BASE_URL}/login", 302
       end
     end
 
     get '/register' do
       if get_session_user()
-        redirect '/', 302
+        redirect "#{BASE_URL}/", 302
       end
       erb :register, layout: :layout, locals: { me: nil }
     end
 
     post '/register' do
       if get_session_user()
-        redirect '/', 302
+        redirect "#{BASE_URL}/", 302
       end
 
       account_name = params['account_name']
@@ -195,14 +197,14 @@ module Isuconp
       validated = validate_user(account_name, password)
       if !validated
         flash[:notice] = 'アカウント名は3文字以上、パスワードは6文字以上である必要があります'
-        redirect '/register', 302
+        redirect "#{BASE_URL}/register", 302
         return
       end
 
       user = db.prepare('SELECT 1 FROM users WHERE `account_name` = ?').execute(account_name).first
       if user
         flash[:notice] = 'アカウント名がすでに使われています'
-        redirect '/register', 302
+        redirect "#{BASE_URL}/register", 302
         return
       end
 
@@ -216,12 +218,12 @@ module Isuconp
         id: db.last_id
       }
       session[:csrf_token] = SecureRandom.hex(16)
-      redirect '/', 302
+      redirect "#{BASE_URL}/", 302
     end
 
     get '/logout' do
       session.delete(:user)
-      redirect '/', 302
+      redirect "#{BASE_URL}/", 302
     end
 
     get '/' do
@@ -298,7 +300,7 @@ module Isuconp
       me = get_session_user()
 
       if me.nil?
-        redirect '/login', 302
+        redirect "#{BASE_URL}/login", 302
       end
 
       if params['csrf_token'] != session[:csrf_token]
@@ -316,12 +318,12 @@ module Isuconp
           mime = "image/gif"
         else
           flash[:notice] = '投稿できる画像形式はjpgとpngとgifだけです'
-          redirect '/', 302
+          redirect "#{BASE_URL}/", 302
         end
 
         if params['file'][:tempfile].read.length > UPLOAD_LIMIT
           flash[:notice] = 'ファイルサイズが大きすぎます'
-          redirect '/', 302
+          redirect "#{BASE_URL}/", 302
         end
 
         params['file'][:tempfile].rewind
@@ -334,10 +336,10 @@ module Isuconp
         )
         pid = db.last_id
 
-        redirect "/posts/#{pid}", 302
+        redirect "#{BASE_URL}/posts/#{pid}", 302
       else
         flash[:notice] = '画像が必須です'
-        redirect '/', 302
+        redirect "#{BASE_URL}/", 302
       end
     end
 
@@ -362,7 +364,7 @@ module Isuconp
       me = get_session_user()
 
       if me.nil?
-        redirect '/login', 302
+        redirect "#{BASE_URL}/login", 302
       end
 
       if params["csrf_token"] != session[:csrf_token]
@@ -381,14 +383,14 @@ module Isuconp
         params['comment']
       )
 
-      redirect "/posts/#{post_id}", 302
+      redirect "#{BASE_URL}/posts/#{post_id}", 302
     end
 
     get '/admin/banned' do
       me = get_session_user()
 
       if me.nil?
-        redirect '/login', 302
+        redirect "#{BASE_URL}/login", 302
       end
 
       if me[:authority] == 0
@@ -404,7 +406,7 @@ module Isuconp
       me = get_session_user()
 
       if me.nil?
-        redirect '/', 302
+        redirect "#{BASE_URL}/", 302
       end
 
       if me[:authority] == 0
@@ -421,7 +423,7 @@ module Isuconp
         db.prepare(query).execute(1, id.to_i)
       end
 
-      redirect '/admin/banned', 302
+      redirect "#{BASE_URL}//admin/banned", 302
     end
   end
 end
