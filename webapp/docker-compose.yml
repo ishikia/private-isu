@@ -1,12 +1,14 @@
 name: private-isu
 services:
   nginx:
-    image: nginx:1.26
+    build:
+      dockerfile: ./Dockerfile
     depends_on:
       - app
     volumes:
       - ./etc/nginx/conf.d:/etc/nginx/conf.d
       - ./public:/public
+      - ./logs/nginx:/var/log/nginx
     ports:
       - "8080:80"
     networks:
